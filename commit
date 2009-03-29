@@ -1,0 +1,83 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Data::Dumper;
+use File::Temp qw(tempfile);
+
+sub get_current_file_list;
+
+# Variables
+
+my $goto_dir = '../';
+my @exts = qw (mkv avi mk4 wmv);
+my $current_file = 'current.list';
+my $diff_template = 'new-%s.txt';
+
+# -------------------
+# Variables
+# -------------------
+
+# Step1: Get current 
+my $tmp_file = get_current_file_list ('../', \@exts);
+
+# Step2: Get and save diff
+if ( -e $current_file ) {
+	# save_diff_to ($current_file, $tmp_file, $diff_template);
+	#unlink $current_file  or die "Can not unlink $current_file: $!";
+}
+
+# Step3: save new current;
+#system 'mv', $tmp_file, $current_file;
+unlink $tmp_file;
+
+# Step4: send diff to Jabber
+
+# Step5: print diff to STDOUT
+
+
+
+
+
+
+
+# -------------------------
+# Subs
+# -------------------------
+
+# Checks if extension of $param1 in list @$param2
+sub check_ext {
+	my ($file, $list) = @_;
+	$file =~ /\.(\w+)$/ or return 0;
+
+	my $ext = $1;
+	grep {$ext eq $_} @$list or return 0;
+	
+	return 1;
+}
+
+sub get_current_file_list {
+	my ($dir, $exts) = @_;
+	my $old_wd;
+    
+    # New file for list
+	my ($fh, $tmp_file) = tempfile ('new_current-XXXXXXX');
+
+	# Change dir (save old before)
+	chomp ($old_wd = `pwd`);
+	chdir $dir;
+
+	# Spawn 'find' process
+	open FIND, '-|', '/usr/bin/find', '-L' or die "can not spawn 'find' process: $!";
+
+	while (my $file = <FIND>) {
+		check_ext ($file, $exts) or next;
+		
+		$file =~ s!^./!!;
+		print $fh $file;
+	}
+	close $fh or die "can not close tmp file $tmp_file: $!";
+	close FIND or die "can not close pipe to spawned process: $!";
+
+	chdir $old_wd;    
+	return $tmp_file;
+}
